@@ -1,0 +1,46 @@
+﻿@model IEnumerable<gestionticket_v2.Models.ApplicationUser>
+
+@{
+    ViewData["Title"] = "User Management";
+}
+@section Styles {
+    <style>
+        body {
+            background: linear-gradient(to right, #e0f7fa, #f0fcff);
+        }
+    </style>
+}
+
+<h1>Gestion Utilisateur</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Nom d'utilisateur</th>
+            <th>Email</th>
+            <th>Rôle</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.UserName</td>
+                <td>@user.Email</td>
+                <td>
+                    @foreach (var role in user.Roles)
+                    {
+                        <span>@role</span>
+                    }
+                </td>
+                <td>
+                    <form asp-controller="UserManagement" asp-action="Delete" method="get">
+                        <input type="hidden" name="id" value="@user.Id" />  <!-- CHANGED HERE -->
+                        <input type="submit" value="Supprimer" class="btn btn-danger" />
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

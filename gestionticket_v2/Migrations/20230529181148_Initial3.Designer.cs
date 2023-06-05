@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using gestionticket_v2.Data;
 
@@ -11,9 +12,10 @@ using gestionticket_v2.Data;
 namespace gestionticket_v2.Migrations
 {
     [DbContext(typeof(gestionticket_v2Context))]
-    partial class gestionticket_v2ContextModelSnapshot : ModelSnapshot
+    [Migration("20230529181148_Initial3")]
+    partial class Initial3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

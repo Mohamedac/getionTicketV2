@@ -18,95 +18,192 @@ namespace gestionticket_v2.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<TicketsController> _logger;
 
-
         public TicketsController(gestionticket_v2Context context, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ILogger<TicketsController> logger)
         {
             _context = context;
             _signInManager = signInManager;
             _userManager = userManager;
+            _logger = logger;
         }
-        public async Task<IActionResult> TechnicianTickets()
+
+        public async Task<IActionResult> TechnicianTickets(string searchTerm)
         {
             if (!User.Identity.IsAuthenticated)
             {
-                // User is not authenticated. Redirect them to the login page.
+                // L'utilisateur n'est pas authentifié. Redirigez-le vers la page de connexion.
                 return RedirectToAction("Login", "Home");
             }
 
             var userIdString = _userManager.GetUserId(User);
             if (userIdString == null)
             {
-                // User is not logged in. Redirect them to the login page.
+                // L'utilisateur n'est pas connecté. Redirigez-le vers la page de connexion.
                 return RedirectToAction("Login", "Home");
             }
 
             var user = await _userManager.FindByIdAsync(userIdString);
             if (user == null)
             {
-                // User does not exist in the database. Handle this case appropriately.
-                // For example, you can log this event and redirect the user to the login page.
-                _logger.LogWarning($"User with ID '{userIdString}' does not exist in the database.");
+                // L'utilisateur n'existe pas dans la base de données. Gérez ce cas de manière appropriée.
+                _logger.LogWarning($"L'utilisateur avec l'ID '{userIdString}' n'existe pas dans la base de données.");
                 return RedirectToAction("Login", "Account");
             }
 
-            var tickets = await _context.Tickets.Where(t => t.AssigneeId == userIdString).ToListAsync();
-            return View(tickets);
+            // Obtenez les tickets assignés à ce technicien
+            IQueryable<Ticket> tickets = _context.Tickets
+                .Include(t => t.Priorite)
+                .Include(t => t.Categorie)
+                .Where(t => t.AssigneeId == userIdString);
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                tickets = tickets.Where(t => t.Titre.Contains(searchTerm));
+            }
+
+            // Le tri doit être effectué après l'application de tous les filtres.
+            tickets = tickets.OrderByDescending(t => t.Priorite.Nom == "Élevé" ? 3 : t.Priorite.Nom == "Moyen" ? 2 : t.Priorite.Nom == "Faible" ? 1 : 0)
+                .ThenBy(t => t.DateCreation);
+
+            // Passez les tickets à la vue...
+            return View(await tickets.ToListAsync());
         }
 
-
-
-        public async Task<IActionResult> ClientTickets()
+        public async Task<IActionResult> ClientTickets(string searchTerm, string searchBy)
         {
+            // Si TempData contient le nom du technicien, passez-le au ViewBag
+            if (TempData["TechnicianName"] != null)
+            {
+                ViewBag.TechnicianName = TempData["TechnicianName"].ToString();
+            }
             if (!User.Identity.IsAuthenticated)
             {
-                // User is not authenticated. Redirect them to the login page.
+                // L'utilisateur n'est pas authentifié. Redirigez-le vers la page de connexion.
                 return RedirectToAction("Login", "Home");
             }
+
             var userIdString = _userManager.GetUserId(User);
             var user = await _userManager.FindByIdAsync(userIdString);
             if (user == null)
             {
-                // User does not exist in the database. Handle this case appropriately.
-                _logger.LogWarning($"User with ID '{userIdString}' does not exist in the database.");
+                // L'utilisateur n'existe pas dans la base de données. Gérez ce cas de manière appropriée.
+                _logger.LogWarning($"L'utilisateur avec l'ID '{userIdString}' n'existe pas dans la base de données.");
                 return RedirectToAction("Login", "Home");
             }
 
             if (userIdString != null)
             {
-                var tickets = await _context.Tickets.Where(t => t.AuteurId == userIdString).ToListAsync();
-                return View(tickets);
+                IQueryable<Ticket> tickets = _context.Tickets.Where(t => t.AuteurId == userIdString);
+
+                if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    switch (searchBy)
+                    {
+                        case "titre":
+                            tickets = tickets.Where(t => t.Titre.Contains(searchTerm));
+                            break;
+                        case "description":
+                            tickets = tickets.Where(t => t.Description.Contains(searchTerm));
+                            break;
+                        case "auteur":
+                            tickets = tickets.Where(t => t.Auteur.UserName.Contains(searchTerm));
+                            break;
+                        case "assignee":
+                            tickets = tickets.Where(t => t.Assignee.UserName.Contains(searchTerm));
+                            break;
+                        case "categorie":
+                            tickets = tickets.Where(t => t.Categorie.Nom.Contains(searchTerm));
+                            break;
+                        case "priorite":
+                            tickets = tickets.Where(t => t.Priorite.Nom.Contains(searchTerm));
+                            break;
+                        case "ticketId": // Gérer la recherche par ID de ticket
+                            int ticketId;
+                            if (int.TryParse(searchTerm, out ticketId))
+                            {
+                                tickets = tickets.Where(t => t.Id == ticketId);
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                ViewBag.CurrentFilter = searchTerm;
+                ViewBag.CurrentSearchBy = searchBy;
+
+                return View(await tickets.ToListAsync());
             }
             else
             {
-                // Handle the case where the user is not logged in.
+                // Gérer le cas où l'utilisateur n'est pas connecté.
                 return View("Error");
             }
         }
 
-
-
-
-
         // GET: Tickets
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchTerm, string searchBy)
         {
-            var gestionticket_v2Context = _context.Tickets.Include(t => t.Assignee).Include(t => t.Auteur).Include(t => t.Categorie).Include(t => t.Priorite);
-            return View(await gestionticket_v2Context.ToListAsync());
+            IQueryable<Ticket> tickets = _context.Tickets
+                .Include(t => t.Assignee)
+                .Include(t => t.Auteur)
+                .Include(t => t.Categorie)
+                .Include(t => t.Priorite)
+                .OrderByDescending(t => t.Priorite.Nom == "Élevé") // Placer les tickets prioritaires en tête de liste
+                .ThenBy(t => t.DateCreation); // Trier par date de création
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                switch (searchBy)
+                {
+                    case "titre":
+                        tickets = tickets.Where(t => t.Titre.Contains(searchTerm));
+                        break;
+                    case "description":
+                        tickets = tickets.Where(t => t.Description.Contains(searchTerm));
+                        break;
+                    case "auteur":
+                        tickets = tickets.Where(t => t.Auteur.UserName.Contains(searchTerm));
+                        break;
+                    case "assignee":
+                        tickets = tickets.Where(t => t.Assignee.UserName.Contains(searchTerm));
+                        break;
+                    case "categorie":
+                        tickets = tickets.Where(t => t.Categorie.Nom.Contains(searchTerm));
+                        break;
+                    case "priorite":
+                        tickets = tickets.Where(t => t.Priorite.Nom.Contains(searchTerm));
+                        break;
+                    case "ticketId": // Gérer la recherche par ID de ticket
+                        int ticketId;
+                        if (int.TryParse(searchTerm, out ticketId))
+                        {
+                            tickets = tickets.Where(t => t.Id == ticketId);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            ViewBag.SearchTerm = searchTerm;
+            ViewBag.SearchBy = searchBy;
+
+            return View(await tickets.ToListAsync());
         }
 
         // GET: Tickets/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.Tickets == null)
+            if (id == null)
             {
                 return NotFound();
             }
 
             var ticket = await _context.Tickets
-                .Include(t => t.Assignee)
-                .Include(t => t.Auteur)
-                .Include(t => t.Categorie)
                 .Include(t => t.Priorite)
+                .Include(t => t.Categorie)
+                .Include(t => t.Auteur)
+                .Include(t => t.Assignee)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (ticket == null)
             {
@@ -119,15 +216,37 @@ namespace gestionticket_v2.Controllers
         // GET: Tickets/Create
         public IActionResult Create()
         {
-            ViewBag.PrioriteId = new SelectList(_context.Priorite, "Id", "Nom");
-            ViewBag.CategorieId = new SelectList(_context.Categorie, "Id", "Nom");
+            var priorityList = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "1", Text = "Élevé" },
+                new SelectListItem { Value = "2", Text = "Moyen" },
+                new SelectListItem { Value = "3", Text = "Faible" },
+                // traduire le dropdown en français pour les priorites
+            };
+
+            var categoryList = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "1", Text = "Problème technique" },
+                new SelectListItem { Value = "2", Text = "Demande de facturation" },
+                new SelectListItem { Value = "3", Text = "Question de vente" },
+                new SelectListItem { Value = "4", Text = "Autre" },
+                new SelectListItem { Value = "5", Text = "Demande de fonctionnalité" },
+                new SelectListItem { Value = "6", Text = "Rapport de bogue" },
+                new SelectListItem { Value = "7", Text = "Modification de compte" },
+                new SelectListItem { Value = "8", Text = "Résiliation de compte" },
+                new SelectListItem { Value = "9", Text = "Création de compte" },
+                new SelectListItem { Value = "10", Text = "Facturation de compte" },
+                new SelectListItem { Value = "11", Text = "Connexion de compte" },
+                // traduire le dropdown en français pour les categories
+            };
+
+            ViewBag.PrioriteId = priorityList;
+            ViewBag.CategorieId = categoryList;
+
             return View();
         }
 
-
         // POST: Tickets/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Titre,Description,PrioriteId,CategorieId")] Ticket ticket)
@@ -140,64 +259,63 @@ namespace gestionticket_v2.Controllers
             ModelState.Remove("PiecesJointes");
             ModelState.Remove("Priorite");
             ModelState.Remove("Categorie");
+            ModelState.Remove("Comment");
+
             if (ModelState.IsValid)
             {
-                // Set default values
-                ticket.Statut = "New"; // Default status
-                ticket.AuteurId = _userManager.GetUserId(User); // Current user ID
-                ticket.AssigneeId = await GetLeastAssignedTechnicianId(); // Assign to technician with least tickets
+                // Définir les valeurs par défaut
+                ticket.DateCreation = DateTime.Now;
+                ticket.Statut = "New"; // Statut par défaut
+                ticket.Comment = "";
+                ticket.AuteurId = _userManager.GetUserId(User); // ID de l'utilisateur actuel
+                ticket.AssigneeId = await GetLeastAssignedTechnicianId(); // Assigner au technicien avec le moins de tickets
 
                 _context.Add(ticket);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("ClientTickets");
             }
-       
-            // Populate select lists
-            ViewData["AssigneeId"] = new SelectList(_context.Set<MembreSupportTechnique>(), "Id", "Id", ticket.AssigneeId);
-            ViewData["AuteurId"] = new SelectList(_context.Set<Client>(), "Id", "Id", ticket.AuteurId);
-            ViewData["CategorieId"] = new SelectList(_context.Set<Categorie>(), "Id", "Id", ticket.CategorieId);
-            ViewData["PrioriteId"] = new SelectList(_context.Set<Priorite>(), "Id", "Id", ticket.PrioriteId);
 
             return View(ticket);
         }
 
         private async Task<string> GetLeastAssignedTechnicianId()
         {
-            // Get all technicians
+            // Obtenez tous les techniciens
             var usersInRole = await _userManager.GetUsersInRoleAsync("MembreSupportTechnique");
 
-
-            // If there are no technicians, return null
+            // S'il n'y a pas de techniciens, retournez null
             if (!usersInRole.Any())
             {
                 return null;
             }
 
-            // Group tickets by AssigneeId, count them, and order by the count
+            // Regroupez les tickets par AssigneeId, comptez-les et triez-les par le nombre de tickets
             var technicianTicketCounts = await _context.Tickets
                 .GroupBy(t => t.AssigneeId)
                 .Select(g => new { TechnicianId = g.Key, TicketCount = g.Count() })
                 .ToListAsync();
 
-            // If there are no tickets, return the ID of the first technician
+            // S'il n'y a pas de tickets, retournez l'ID du premier technicien
             if (!technicianTicketCounts.Any())
             {
                 return usersInRole.First().Id;
             }
 
-            // Find the technician with the least tickets
+            // Trouvez le technicien avec le moins de tickets
             var leastTicketsTechnician = technicianTicketCounts.OrderBy(t => t.TicketCount).First();
 
-            // If the technician with the least tickets has no tickets, return the ID of the first technician
-            if (leastTicketsTechnician.TicketCount == 0)
+            // Vérifiez s'il y a des techniciens sans tickets
+            var techniciansWithNoTickets = usersInRole.Where(u => !technicianTicketCounts.Any(t => t.TechnicianId == u.Id)).ToList();
+
+            // S'il y a des techniciens sans tickets, retournez l'ID du premier
+            if (techniciansWithNoTickets.Any())
             {
-                return usersInRole.First().Id;
+                return techniciansWithNoTickets.First().Id;
             }
 
-            // Return the ID of the technician with the least tickets
+            // Retournez l'ID du technicien avec le moins de tickets
             return leastTicketsTechnician.TechnicianId;
         }
-
 
         // GET: Tickets/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -207,58 +325,99 @@ namespace gestionticket_v2.Controllers
                 return NotFound();
             }
 
-            var ticket = await _context.Tickets.FindAsync(id);
+            var ticket = await _context.Tickets
+                .Include(t => t.Priorite)
+                .Include(t => t.Categorie)
+                .Include(t => t.Auteur)
+                .Include(t => t.Assignee)
+                .FirstOrDefaultAsync(m => m.Id == id);
             if (ticket == null)
             {
                 return NotFound();
             }
-            ViewData["AssigneeId"] = new SelectList(_context.Set<MembreSupportTechnique>(), "Id", "Id", ticket.AssigneeId);
-            ViewData["AuteurId"] = new SelectList(_context.Set<Client>(), "Id", "Id", ticket.AuteurId);
-            ViewData["CategorieId"] = new SelectList(_context.Set<Categorie>(), "Id", "Id", ticket.CategorieId);
-            ViewData["PrioriteId"] = new SelectList(_context.Set<Priorite>(), "Id", "Id", ticket.PrioriteId);
+
+            var priorityList = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "1", Text = "Élevé" },
+                new SelectListItem { Value = "2", Text = "Moyen" },
+                new SelectListItem { Value = "3", Text = "Faible" },
+                // traduire les valeurs du dropdown en français
+            };
+
+            var categoryList = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "1", Text = "Problème technique" },
+                new SelectListItem { Value = "2", Text = "Demande de facturation" },
+                new SelectListItem { Value = "3", Text = "Question de vente" },
+                new SelectListItem { Value = "4", Text = "Autre" },
+                new SelectListItem { Value = "5", Text = "Demande de fonctionnalité" },
+                new SelectListItem { Value = "6", Text = "Rapport de bogue" },
+                new SelectListItem { Value = "7", Text = "Modification de compte" },
+                new SelectListItem { Value = "8", Text = "Résiliation de compte" },
+                new SelectListItem { Value = "9", Text = "Création de compte" },
+                new SelectListItem { Value = "10", Text = "Facturation de compte" },
+                new SelectListItem { Value = "11", Text = "Connexion de compte" },
+            };
+
+            ViewBag.Priorite = new SelectList(priorityList, "Value", "Text", ticket.PrioriteId);
+            ViewBag.Categorie = new SelectList(categoryList, "Value", "Text", ticket.CategorieId);
+
             return View(ticket);
         }
 
         // POST: Tickets/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Titre,Description,PrioriteId,CategorieId,AuteurId,AssigneeId,Statut,DateCreation,DateModification")] Ticket ticket)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Titre,Description,PrioriteId,CategorieId,AuteurId,Statut,DateCreation,DateModification,Comment")] Ticket ticket)
         {
             if (id != ticket.Id)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            var existingTicket = await _context.Tickets.FindAsync(id);
+            if (existingTicket == null)
             {
-                try
-                {
-                    _context.Update(ticket);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TicketExists(ticket.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                return NotFound();
             }
-            ViewData["AssigneeId"] = new SelectList(_context.Set<MembreSupportTechnique>(), "Id", "Id", ticket.AssigneeId);
-            ViewData["AuteurId"] = new SelectList(_context.Set<Client>(), "Id", "Id", ticket.AuteurId);
-            ViewData["CategorieId"] = new SelectList(_context.Set<Categorie>(), "Id", "Id", ticket.CategorieId);
-            ViewData["PrioriteId"] = new SelectList(_context.Set<Priorite>(), "Id", "Id", ticket.PrioriteId);
-            return View(ticket);
+
+            // Mettre à jour les propriétés du ticket existant
+            existingTicket.Titre = ticket.Titre;
+            existingTicket.Description = ticket.Description;
+
+            // Mettre à jour l'objet Categorie ainsi que son ID
+            existingTicket.CategorieId = ticket.CategorieId;
+            existingTicket.Categorie = await _context.Categorie.FindAsync(ticket.CategorieId);
+
+            // Mettre à jour l'objet Priorite ainsi que son ID
+            existingTicket.PrioriteId = ticket.PrioriteId;
+            existingTicket.Priorite = await _context.Priorite.FindAsync(ticket.PrioriteId);
+
+            existingTicket.Statut = ticket.Statut;
+            existingTicket.DateModification = DateTime.Now;
+            existingTicket.Comment = ticket.Comment;
+
+            try
+            {
+                _context.Update(existingTicket);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!TicketExists(ticket.Id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Tickets/Delete/5
+        // Récupère les détails d'un ticket pour l'afficher dans la vue de suppression
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Tickets == null)
@@ -281,27 +440,31 @@ namespace gestionticket_v2.Controllers
         }
 
         // POST: Tickets/Delete/5
+        // Supprime le ticket confirmé de la base de données
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             if (_context.Tickets == null)
             {
-                return Problem("Entity set 'gestionticket_v2Context.Ticket'  is null.");
+                return Problem("L'ensemble d'entités 'gestionticket_v2Context.Ticket' est nul.");
             }
             var ticket = await _context.Tickets.FindAsync(id);
             if (ticket != null)
             {
                 _context.Tickets.Remove(ticket);
             }
-            
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
+        // Vérifie si un ticket existe dans la base de données en fonction de son ID
         private bool TicketExists(int id)
         {
-          return (_context.Tickets?.Any(e => e.Id == id)).GetValueOrDefault();
+            return (_context.Tickets?.Any(e => e.Id == id)).GetValueOrDefault();
         }
+
     }
+
 }

@@ -11,18 +11,19 @@ namespace gestionticket_v2.Data
         {
         }
 
+        // DbSet pour les entités Ticket, Categorie, Priorite, Statistiques, Client et MembreSupportTechnique
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<Categorie> Categorie { get; set; }
         public DbSet<Priorite> Priorite { get; set; }
         public DbSet<Statistiques> Statistiques { get; set; }
-        
+        public DbSet<Client> Client { get; set; }
+        public DbSet<MembreSupportTechnique> MembreSupportTechnique { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            
-            base.OnModelCreating(modelBuilder); // This is needed to correctly set up the identity model
-           
+            base.OnModelCreating(modelBuilder); // Ceci est nécessaire pour configurer correctement le modèle d'identité
 
+            // Configuration des relations entre les entités Ticket, ApplicationUser, Categorie et Priorite
             modelBuilder.Entity<Ticket>()
                 .HasOne(t => t.Assignee)
                 .WithMany(m => m.TicketsAssignes)

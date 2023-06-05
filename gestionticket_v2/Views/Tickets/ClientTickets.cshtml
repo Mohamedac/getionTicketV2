@@ -1,27 +1,57 @@
 ﻿@model List<gestionticket_v2.Models.Ticket>
 
-<h2>Your Tickets</h2>
+@section Styles {
+<style>
+body {
+background: linear-gradient(to right, #e0f7fa, #f0fcff);
+}
+</style>
+}
+
+<h2>Vos Tickets</h2>
+<br>
+@using (Html.BeginForm("ClientTickets", "Tickets", FormMethod.Get))
+{
+    <input type="text" name="searchTerm" placeholder="Rechercher..." value="@ViewBag.CurrentFilter" /> <!-- Champ de recherche -->
+    <select name="searchBy"> <!-- Sélection du critère de recherche -->
+        <option value="titre">Titre</option>
+        <option value="description">Description</option>
+        <option value="ticketId">Ticket ID</option>
+    </select>
+    <input type="submit" value="Rechercher" /> <!-- Bouton de recherche -->
+}
+<br>
+<a class="btn btn-primary" asp-controller="Tickets" asp-action="Create">Créer un nouveau ticket</a> <!-- Bouton pour créer un nouveau ticket -->
+<br>
 
 <table class="table">
     <thead>
         <tr>
             <th>Id</th>
-            <th>Title</th>
+            <th>Titre</th>
             <th>Description</th>
-            <!-- Add more columns as needed for other Ticket properties -->
+            <th>Commentaire</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var ticket in Model)
+        @foreach (var ticket in Model) 
         {
             <tr>
-                <td>@ticket.Id</td>
-                <td>@ticket.Titre</td>
-                <td>@ticket.Description</td>
-                <!-- Add more cells as needed for other Ticket properties -->
+                <td>@ticket.Id</td> <!-- Affichage de l'ID du ticket -->
+                <td>@ticket.Titre</td> <!-- Affichage du titre du ticket -->
+                <td>@ticket.Description</td> <!-- Affichage de la description du ticket -->
+                <td>@ticket.Comment</td> <!-- Affichage du commentaire du ticket -->
             </tr>
         }
     </tbody>
 </table>
 
-<a class="btn btn-primary" asp-controller="Tickets" asp-action="Create">Create New Ticket</a>
+
+
+
+
+
+
+
+
+

@@ -1,84 +1,177 @@
 ﻿@model IEnumerable<gestionticket_v2.Models.Ticket>
 
+
+
 @{
+
     ViewData["Title"] = "Index";
+
 }
 
-<h1>Index</h1>
+@section Styles {
 
+    <style>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Titre)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Priorite)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Categorie)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Auteur)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Statut)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DateCreation)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DateModification)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Assignee)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Titre)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Priorite.Id)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Categorie.Id)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Auteur.Id)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Statut)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.DateCreation)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.DateModification)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Assignee.Id)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
+        body {
+            background: linear-gradient(to right, #e0f7fa, #f0fcff);
+        }
+
+    </style>
+
 }
-    </tbody>
-</table>
+
+    @section Scripts {
+
+    <script type="text/javascript">
+
+        function confirmDelete() {
+
+            return confirm('Êtes-vous sûr de vouloir supprimer ce ticket ?');
+
+        }
+
+    </script>
+
+}
+
+
+
+    <div class="container">
+
+        <h1>Liste de tous les tickets</h1>
+
+        <br>
+
+
+
+        <!-- Formulaire de recherche -->
+    @using (Html.BeginForm("Index", "Tickets", FormMethod.Get))
+
+    {
+
+        <input type="text" name="searchTerm" placeholder="Rechercher..." value="@ViewBag.SearchTerm" />
+
+        <select name="searchBy">
+
+            <option value="titre">Titre</option>
+
+            <option value="description">Description</option>
+
+            <option value="auteur">Auteur</option>
+
+            <option value="assignee">Assignee</option>
+
+            <option value="categorie">Categorie</option>
+
+            <option value="priorite">Priorité</option>
+
+            <option value="ticketId">Ticket ID</option>
+
+        </select>
+
+        <input type="submit" value="Rechercher" />
+
+    }
+
+    <br>
+
+    <p>
+
+        <!-- Bouton pour créer un nouveau ticket -->
+
+        <a class="btn btn-primary" asp-action="Create">Créer un nouveau ticket</a>
+
+    </p>
+
+
+
+    <!-- Tableau des tickets -->
+
+    <table class="table">
+
+        <thead>
+
+            <tr>
+
+                <th>@Html.DisplayNameFor(model => model.Id)</th>
+
+                <th>@Html.DisplayNameFor(model => model.Titre)</th>
+
+                <th>@Html.DisplayNameFor(model => model.Description)</th>
+
+                <th>@Html.DisplayNameFor(model => model.Priorite)</th>
+
+                <th>@Html.DisplayNameFor(model => model.Categorie)</th>
+
+                <th>@Html.DisplayNameFor(model => model.Auteur)</th>
+
+                <th>@Html.DisplayNameFor(model => model.Statut)</th>
+
+                <th>@Html.DisplayNameFor(model => model.DateCreation)</th>
+
+                <th>@Html.DisplayNameFor(model => model.DateModification)</th>
+
+                <th>@Html.DisplayNameFor(model => model.Comment)</th>
+
+                <th></th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            <!-- Boucle sur chaque ticket -->
+            @foreach (var item in Model)
+
+            {
+
+                <tr>
+
+                    <td>@Html.DisplayFor(modelItem => item.Id)</td>
+
+                    <td>@Html.DisplayFor(modelItem => item.Titre)</td>
+
+                    <td>@Html.DisplayFor(modelItem => item.Description)</td>
+
+                    <td>@Html.DisplayFor(modelItem => item.Priorite.Nom)</td>
+
+                    <td>@Html.DisplayFor(modelItem => item.Categorie.Nom)</td>
+
+                    <td>@Html.DisplayFor(modelItem => item.Auteur.Nom)</td>
+
+                    <td>@Html.DisplayFor(modelItem => item.Statut)</td>
+
+                    <td>@Html.DisplayFor(modelItem => item.DateCreation)</td>
+
+                    <td>@Html.DisplayFor(modelItem => item.DateModification)</td>
+
+                    <td>@Html.DisplayFor(modelItem => item.Comment)</td>
+
+                    <td>
+
+                        <!-- Boutons d'action -->
+
+                        <a class="btn btn-primary" asp-action="Edit" asp-route-id="@item.Id">Modifier</a>
+
+                        <a class="btn btn-info" asp-action="Details" asp-route-id="@item.Id">Détails</a>
+
+                        @if (User.IsInRole("Admin"))
+
+                        {
+
+                            <a class="btn btn-danger" asp-action="Delete" asp-route-id="@item.Id" onclick="return confirmDelete();">Supprimer</a>
+
+                        }
+
+                    </td>
+
+                </tr>
+
+            }
+
+        </tbody>
+
+    </table>
+
+</div>

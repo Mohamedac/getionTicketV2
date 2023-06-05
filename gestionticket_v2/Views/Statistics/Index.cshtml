@@ -1,0 +1,328 @@
+﻿@{
+    ViewBag.Title = "Statistiques";
+}
+
+<h2>@ViewBag.Title</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="chart-container">
+            <canvas id="myBarChart"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="chart-container">
+            <canvas id="myMemberChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="chart-container">
+            <canvas id="myPieChart"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="chart-container">
+            <canvas id="myResolutionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+
+
+@section Styles {
+    <style>
+        body {
+            background: linear-gradient(to right, #e0f7fa, #f0fcff);
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+    </style>
+}
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+
+
+
+        var ctxBar = document.getElementById('myBarChart').getContext('2d');
+        var ctxMember = document.getElementById('myMemberChart').getContext('2d');
+        var ctxPie = document.getElementById('myPieChart').getContext('2d');
+
+        var chart = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Statistiques',
+                    data: [],
+                    backgroundColor: [],
+                    borderColor: [],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Nombre de tickets',
+                        font: {
+                            size: 20
+                        }
+                    }
+                }
+            }
+        });
+        // Fonction pour générer une couleur aléatoire
+        function getRandomColor() {
+            var letters = '0123456789ABCDEF';
+            var color = '#';
+            for (var i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+        // Requête AJAX pour obtenir le nombre total de tickets
+        $.ajax({
+            url: '/Statistics/TotalTickets',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                chart.data.labels.push('Total');
+                chart.data.datasets[0].data.push(data);
+                chart.data.datasets[0].backgroundColor.push(getRandomColor());
+                chart.update();
+            }
+        });
+        // Requête AJAX pour obtenir le nombre de tickets ouverts, en cours, terminés et fermés
+        $.ajax({
+            url: '/Statistics/OpenClosedTickets',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                chart.data.labels.push('Nouveau', 'En cours', 'Terminé', 'Fermé');
+                chart.data.datasets[0].data.push(data.newTickets, data.inProgressTickets, data.completedTickets, data.closedTickets);
+                chart.data.datasets[0].backgroundColor.push(getRandomColor(), getRandomColor(), getRandomColor(), getRandomColor());
+                chart.update();
+            }
+        });
+
+
+        /*
+        $.ajax({
+            url: '/Statistics/TotalTickets',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                chart.data.labels.push('Total Tickets');
+                chart.data.datasets[0].data.push(data);
+                chart.update();
+            }
+        });
+
+        $.ajax({
+            url: '/Statistics/OpenClosedTickets',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                chart.data.labels.push('Tickets ouverts', 'Tickets fermés');
+                chart.data.datasets[0].data.push(data.openTickets, data.closedTickets);
+                chart.update();
+            }
+        });
+        */
+        // Requête AJAX pour obtenir le nombre de tickets par membre de l'équipe
+        $.ajax({
+            url: '/Statistics/TicketsPerTeamMember',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                var ctxBar = document.getElementById('myMemberChart').getContext('2d');
+                var memberChart = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: [], // Utilisez les noms des assignés ici
+                        datasets: [{
+                            label: 'Tickets par membre',
+                            data: [],
+                            backgroundColor: [],
+                            borderColor: [],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Nombre de tickets par membre de l\'équipe',
+                                font: {
+                                    size: 20
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log(data); // ajoutez cette ligne pour voir les données renvoyées par l'endpoint
+                data.forEach(function (item) {
+                    memberChart.data.labels.push(item.assigneeName); // Use assignee names here
+                    memberChart.data.datasets[0].data.push(item.count);
+                    memberChart.data.datasets[0].backgroundColor.push(getRandomColor());
+                });
+
+                memberChart.update();
+            }
+        });
+
+
+
+
+
+
+
+/*
+        $.ajax({
+            url: '/Statistics/AverageResolutionTime',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                // Ici vous pouvez utiliser la donnée reçue pour mettre à jour un élément de la page.
+                // Par exemple, si vous voulez afficher cette information dans un élément p, vous pourriez faire quelque chose comme ceci :
+                $('#averageResolutionTime').text('Temps de résolution moyen: ' + data + ' heures');
+            }
+        });
+        */
+        // Requête AJAX pour obtenir le nombre de tickets par catégorie
+        var pieChart = new Chart(ctxPie, {
+            type: 'pie',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Nombre de tickets par categorie',
+                        font: {
+                            size: 20
+                        }
+                    }
+                }
+
+            }
+        });
+
+        function getRandomColor() {
+            var letters = '0123456789ABCDEF';
+            var color = '#';
+            for (var i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        $.ajax({
+            url: '/Statistics/TicketsPerCategory',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                for (var i = 0; i < data.length; i++) {
+                    pieChart.data.labels.push(data[i].categorie);
+                    pieChart.data.datasets[0].data.push(data[i].count);
+                    pieChart.data.datasets[0].backgroundColor.push(getRandomColor()); // Generates a random color for each category.
+                }
+                pieChart.update();
+            }
+        });
+        // Requête AJAX pour obtenir le temps moyen de résolution par catégorie
+
+        $(document).ready(function () {
+            var ctxResolution = document.getElementById('myResolutionChart').getContext('2d');
+            var resolutionChart = new Chart(ctxResolution, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temps moyen de résolution par catégorie',
+                        data: [],
+                        backgroundColor: [],
+                        borderColor: [],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Hours'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Temps moyen de résolution par catégorie',
+                            font: {
+                                size: 20
+                            }
+                        }
+                    }
+                }
+            });
+
+            function getRandomColor() {
+                var letters = '0123456789ABCDEF';
+                var color = '#';
+                for (var i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+
+            $.ajax({
+                url: '/Statistics/AverageResolutionTimePerCategory',
+                method: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    data.forEach(function (item) {
+                        resolutionChart.data.labels.push(item.categoryName);
+                        resolutionChart.data.datasets[0].data.push(Number(item.averageResolutionTime));
+                        resolutionChart.data.datasets[0].backgroundColor.push(getRandomColor());
+                    });
+
+                    resolutionChart.update();
+                }
+            });
+        });
+
+
+
+
+    </script>
+}

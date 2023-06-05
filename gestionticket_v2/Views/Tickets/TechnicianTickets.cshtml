@@ -1,31 +1,69 @@
-﻿@model IEnumerable<gestionticket_v2.Models.Ticket>
-
-<h2>Technician Tickets</h2>
-
-<table class="table">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Title</th>
-            <th>Description</th>
-            <th>Status</th>
-            <th>Date Created</th>
-            <th>Date Modified</th>
-            <!-- Add more columns as needed -->
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var ticket in Model)
-        {
-            <tr>
-                <td>@ticket.Id</td>
-                <td>@ticket.Titre</td>
-                <td>@ticket.Description</td>
-                <td>@ticket.Statut</td>
-                <td>@ticket.DateCreation</td>
-                <td>@ticket.DateModification</td>
-                <!-- Add more fields as needed -->
-            </tr>
+﻿@section Styles {
+    <style>
+        body {
+            background: linear-gradient(to right, #e0f7fa, #f0fcff);
         }
-    </tbody>
-</table>
+    </style>
+}
+    <div class="container">
+        <h2>Tickets qui vous ont été attribués</h2>
+        <br>
+    @using (Html.BeginForm("Index", "Tickets", FormMethod.Get))
+    {
+        <!-- Barre de recherche -->
+        <input type="text" name="searchTerm" placeholder="Search..." value="@ViewBag.CurrentFilter" />
+        <select name="searchBy">
+            <option value="titre">Titre</option>
+            <option value="description">Description</option>
+            <option value="auteur">Auteur</option>
+            <option value="assignee">Assignee</option>
+            <option value="categorie">Categorie</option>
+            <option value="priorite">Priorité</option>
+            <option value="ticketId">Ticket ID</option>
+        </select>
+        <input type="submit" value="Rechercher" />
+    }
+    <br>
+
+    <!-- Lien pour créer un nouveau ticket -->
+    <a class="btn btn-primary" asp-controller="Tickets" asp-action="Create">Créer un nouveau ticket</a>
+
+    <!-- Tableau des tickets -->
+    <table class="table table-striped">
+        <thead class="thead-light">
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Titre</th>
+                <th scope="col">Description</th>
+                <th scope="col">Commentaire</th>
+                <th scope="col">Priorité</th>
+                <th scope="col">Categorie</th>
+                <th scope="col">Status</th>
+                <th scope="col">Date de création</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Parcours des tickets dans la liste Model -->
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@item.Titre</td>
+                    <td>@item.Description</td>
+                    <td>@item.Comment</td>
+                    <td>@item.Priorite.Nom</td>
+                    <td>@item.Categorie.Nom</td>
+                    <td>@item.Statut</td>
+                    <td>@item.DateCreation</td>
+                    <td>
+                        <!-- Boutons d'action pour modifier et afficher les détails du ticket -->
+                        <a class="btn btn-primary" asp-action="Edit" asp-route-id="@item.Id">Modifier</a>
+                        <a class="btn btn-info" asp-action="Details" asp-route-id="@item.Id">Détails</a>
+                        <!--<a class="btn btn-danger" asp-action="Delete" asp-route-id="@item.Id">Delete</a>-->
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

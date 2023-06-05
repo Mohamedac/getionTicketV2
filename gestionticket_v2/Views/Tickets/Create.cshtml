@@ -1,27 +1,369 @@
 ﻿@model gestionticket_v2.Models.Ticket
 
-<h2>Create Ticket</h2>
 
-<form asp-action="Create">
-    <div class="form-group">
-        <label asp-for="Titre"></label>
-        <input asp-for="Titre" class="form-control" />
-        <span asp-validation-for="Titre" class="text-danger"></span>
+
+@section Styles {
+
+    <style>
+
+        body {
+            background: linear-gradient(to right, #e0f7fa, #f0fcff);
+        }
+
+    </style>
+
+}
+
+
+
+    <div class="container">
+
+        <div class="row">
+
+            <div class="col-md-12">
+
+                <h1 class="text-center shadow"></h1>
+
+                <style>
+
+                    .blue-text {
+                        color: rgb(0, 110, 255);
+                    }
+
+                </style>
+
+                <h2 class="text-center blue-text">Discuter avec notre IA</h2>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="row">
+
+            <div class="col-md-12">
+
+                <form id="chatbot-form" class="form-group">
+
+                    <div class="form-group">
+
+                        <textarea class="form-control" id="message-text" name="message-text" rows="3"></textarea>
+
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Envoyer</button>
+
+                    <button id="clear-text-button1" class="btn btn-danger">Supprimer le texte</button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+
+
+        <br>
+
+
+
+        <!-- Animation de chargement -->
+
+        <div id="loading" style="display: none;">
+
+            <div class="spinner-border text-primary" role="status">
+
+                <span class="sr-only">.</span>
+
+            </div>
+
+        </div>
+
+
+
+        <br>
+
+
+
+        <div class="row">
+
+            <div class="col-md-12">
+
+                <h2 class="text-center"></h2>
+
+                <div id="chatbot-response">
+
+                    <textarea class="form-control editable" id="edited-response-text" rows="6"></textarea>
+
+                    <button id="problem-persist-button" class="btn btn-primary">Le problème existe toujours</button>
+
+                    <button id="clear-text-button2" class="btn btn-danger">Supprimer le texte</button>
+
+                    <button id="copy-button" class="btn btn-success">Copier</button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <script>
+
+            // Importer la bibliothèque axios
+
+            // import axios from "axios";
+
+            // const axios = require("axios");
+
+
+
+            const API_KEY = "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";
+
+
+
+            // Définir la fonction pour générer une réponse
+
+            const generateResponse = async (prompt) => {
+
+                return axios.post("https://cors-anywhere.herokuapp.com/https://api.openai.com/v1/engines/text-davinci-003/completions", {
+
+                    prompt: prompt,
+
+                    max_tokens: 3000,
+
+                    temperature: 0.7
+
+                }, {
+
+                    headers: {
+
+                        "Content-Type": "application/json",
+
+                        "Authorization": `Bearer ${API_KEY}`,
+
+                        "X-Requested-With": "XMLHttpRequest",
+
+                        "Origin": null
+
+                    }
+
+                });
+
+            };
+
+
+
+            // Obtenir l'élément de formulaire
+
+            const form = document.getElementById("chatbot-form");
+
+
+
+            // Écouter l'événement de soumission du formulaire
+
+            form.addEventListener("submit", async (event) => {
+
+                // Empêcher l'envoi du formulaire normalement (ce qui rafraîchirait la page)
+
+                event.preventDefault();
+
+
+
+                // Obtenir le texte du message
+
+                const messageText = document.getElementById("message-text").value;
+
+
+
+                // Afficher l'animation de chargement
+
+                document.getElementById("loading").style.display = "block";
+
+
+
+                // Générer la réponse
+
+                const response = await generateResponse(messageText);
+
+
+
+                // Obtenir les réponses existantes de l'IA à partir du champ "edited-response-text"
+
+                const currentAIResponses = document.getElementById("edited-response-text").value;
+
+
+
+                // Ajouter la nouvelle réponse de l'IA aux réponses actuelles
+
+                const newAIResponses = `${currentAIResponses}\n${response.data.choices[0].text}`;
+
+
+
+                // Mettre à jour le champ "edited-response-text" avec les nouvelles réponses
+
+                document.getElementById("edited-response-text").value = newAIResponses;
+
+
+
+                // Masquer l'animation de chargement
+
+                document.getElementById("loading").style.display = "none";
+
+            });
+
+
+
+            // Écouter l'événement de clic sur le bouton de copie
+
+            document.getElementById("copy-button").addEventListener("click", () => {
+
+                // Sélectionner le texte de la réponse
+
+                document.getElementById("edited-response-text").select();
+
+
+
+                // Copier le texte de la réponse
+
+                document.execCommand("copy");
+
+            });
+
+
+
+            // Effacer le texte dans le champ "message-text"
+
+            document.getElementById("clear-text-button1").addEventListener("click", () => {
+
+                document.getElementById("message-text").value = "";
+
+            });
+
+
+
+            // Effacer le texte dans le champ "edited-response-text"
+
+            document.getElementById("clear-text-button2").addEventListener("click", () => {
+
+                document.getElementById("edited-response-text").value = "";
+
+            });
+
+
+
+            // Copier le message et la réponse dans le champ de description
+
+            document.getElementById("problem-persist-button").addEventListener("click", () => {
+
+                const messageText = document.getElementById("message-text").value;
+
+                const responseText = document.getElementById("edited-response-text").value;
+
+                const descriptionField = document.getElementById("description-text");
+
+                descriptionField.value = `Question : ${messageText}\n\nRéponse : ${responseText}`;
+
+            });
+
+
+
+            // Copier le message et la réponse dans le champ de description
+
+            document.getElementById("problem-persist-button").addEventListener("click", () => {
+
+                const messageText = document.getElementById("message-text").value;
+
+                const responseText = document.getElementById("edited-response-text").value;
+
+                const descriptionField = document.getElementById("description-text");
+
+                const titleField = document.getElementById("title-text");
+
+
+
+                // Définir le champ de description avec le texte avec la phrase ajoutée à la fin
+
+                descriptionField.value = `Question : ${messageText}\n\nRéponse : ${responseText}\n\n****Le client a tenté de résoudre le problème en utilisant les suggestions de l'IA, mais le problème persiste.****`;
+
+
+
+                // Définir le titre sur la première phrase de la description
+
+                const firstSentence = messageText.split(/\.|\?|\!/)[0];
+
+                titleField.value = firstSentence;
+
+            });
+
+
+
+        </script>
+
+
+
+        <script src="https://cors-anywhere.herokuapp.com/https://cdn.jsdelivr.net/npm/cors-anywhere@0.4.0/cors-anywhere.min.js"></script>
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+        <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+
+
+        <br>
+
+        <h2>Créer un ticket</h2>
+
+        <form asp-action="Create">
+
+            <div class="form-group">
+
+                <label asp-for="Titre"></label>
+
+                <input id="title-text" asp-for="Titre" class="form-control" />
+
+                <span asp-validation-for="Titre" class="text-danger"></span>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label asp-for="Description"></label>
+
+                <textarea id="description-text" asp-for="Description" class="form-control"></textarea>
+
+                <span asp-validation-for="Description" class="text-danger"></span>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label asp-for="Priorite"></label>
+
+                <select asp-for="PrioriteId" asp-items="ViewBag.PrioriteId" class="form-control"></select>
+
+                <span asp-validation-for="PrioriteId" class="text-danger"></span>
+
+            </div>
+
+            <div class="form-group">
+
+                <label asp-for="Categorie"></label>
+
+                <select asp-for="CategorieId" asp-items="ViewBag.CategorieId" class="form-control"></select>
+
+                <span asp-validation-for="CategorieId" class="text-danger"></span>
+
+            </div>
+
+            <button type="submit" class="btn btn-primary">Créer</button>
+
+        </form>
+
     </div>
-    <div class="form-group">
-        <label asp-for="Description"></label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-        <span asp-validation-for="Description" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label asp-for="Priorite"></label>
-        <select asp-for="PrioriteId" asp-items="ViewBag.PrioriteId" class="form-control"></select>
-        <span asp-validation-for="PrioriteId" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label asp-for="Categorie"></label>
-        <select asp-for="CategorieId" asp-items="ViewBag.CategorieId" class="form-control"></select>
-        <span asp-validation-for="CategorieId" class="text-danger"></span>
-    </div>
-    <button type="submit" class="btn btn-primary">Create</button>
-</form>

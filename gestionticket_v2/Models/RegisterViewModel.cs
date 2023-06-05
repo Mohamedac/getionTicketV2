@@ -2,13 +2,13 @@
 
 public class RegisterViewModel
 {
-    [Required]
+    [Required(ErrorMessage = "Le champ {0} est obligatoire")]
     public string Nom { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Le champ {0} est obligatoire")]
     public string Prenom { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Le champ {0} est obligatoire")]
     [EmailAddress]
     public string Email { get; set; }
 

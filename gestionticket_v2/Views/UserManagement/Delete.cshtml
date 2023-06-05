@@ -1,0 +1,33 @@
+﻿@model gestionticket_v2.Models.ApplicationUser
+
+@section Styles {
+    <style>
+        body {
+            background: linear-gradient(to right, #e0f7fa, #f0fcff);
+        }
+    </style>
+}
+
+<h2>Supprimer Utilisateur</h2>
+
+<h3>Êtes-vous VRAIMENT sûr de vouloir supprimer cet utilisateur ?</h3>
+<div>
+    <h4>@Model.UserName</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.UserName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.UserName)
+        </dd>
+        <!-- Add additional properties here as necessary -->
+    </dl>
+
+    <form asp-controller="UserManagement" asp-action="DeleteConfirmed">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="Supprimer" class="btn btn-danger" /> |
+        <a asp-action="Index">Retourner à la liste</a>
+    </form>
+
+</div>
